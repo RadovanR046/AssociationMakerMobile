@@ -37,9 +37,39 @@ export function createStyles(theme) {
     logoSubtitle: {
       color: theme.mutedText,
       fontSize: 16,
-      marginBottom: 30,
+      marginBottom: 14,
       marginTop: 6,
       textAlign: 'center',
+    },
+    homeLevelBadge: {
+      alignItems: 'center',
+      alignSelf: 'center',
+      backgroundColor: theme.panel,
+      borderColor: theme.border,
+      borderRadius: 8,
+      borderWidth: 1,
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 24,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+    },
+    homeLevelIcon: {
+      fontSize: 20,
+    },
+    homeLevelCopy: {
+      gap: 2,
+    },
+    homeLevelLabel: {
+      color: theme.mutedText,
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+    },
+    homeLevelValue: {
+      color: theme.text,
+      fontSize: 14,
+      fontWeight: '900',
     },
     menuStack: {
       gap: 11,
@@ -132,6 +162,9 @@ export function createStyles(theme) {
       overflow: 'hidden',
       padding: 16,
       width: '48.5%',
+    },
+    levelCardWide: {
+      width: '100%',
     },
     levelIcon: {
       fontSize: 34,
@@ -721,6 +754,42 @@ export function createStyles(theme) {
       color: theme.accentText,
       fontSize: 12,
       fontWeight: '900',
+    },
+    blitzFeedbackBox: {
+      backgroundColor: theme.successSoft,
+      borderColor: theme.success,
+      borderRadius: 7,
+      borderWidth: 1,
+      marginBottom: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    blitzSkippedBox: {
+      backgroundColor: theme.dangerSoft,
+      borderColor: theme.danger,
+    },
+    blitzWrongBox: {
+      backgroundColor: theme.accentSoft,
+      borderColor: theme.accent,
+    },
+    blitzFeedbackTitle: {
+      color: theme.success,
+      fontSize: 13,
+      fontWeight: '900',
+      textAlign: 'center',
+    },
+    blitzSkippedTitle: {
+      color: theme.danger,
+    },
+    blitzWrongTitle: {
+      color: theme.accent,
+    },
+    blitzFeedbackAnswer: {
+      color: theme.text,
+      fontSize: 14,
+      fontWeight: '900',
+      marginTop: 2,
+      textAlign: 'center',
     },
     blitzResultStats: {
       gap: 6,

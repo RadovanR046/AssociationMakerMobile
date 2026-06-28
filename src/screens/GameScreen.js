@@ -21,6 +21,18 @@ import { EMPTY_STATS, STORAGE_KEYS } from '../constants/storage';
 import { createPuzzle, normalize } from '../services/words';
 import { useAppTheme } from '../theme/ThemeContext';
 
+const LEVEL_3_TIME_LIMIT_SECONDS = 240;
+const WRONG_COLUMN_MESSAGES = [
+  'Nije to rješenje ove kolone. Probaj još jedno polje ili drugi odgovor.',
+  'Blizu ili daleko, tabla još ćuti. Otvori novo polje pa probaj ponovo.',
+  'Ova kolona traži drugi odgovor.',
+];
+const WRONG_FINAL_MESSAGES = [
+  'Nije konačno rješenje. Pogledaj odgovore i pokušaj ponovo.',
+  'Konačno rješenje još nije pogođeno.',
+  'Dobar pokušaj, ali ova asocijacija vodi ka drugoj riječi.',
+];
+
 function emptyRevealedState() {
   return { 0: [], 1: [], 2: [], 3: [] };
 }
@@ -31,6 +43,16 @@ function emptyAttemptsState() {
 
 function randomIndex(max) {
   return Math.floor(Math.random() * max);
+}
+
+function randomItem(items) {
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+function formatTime(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
 function getInitialRevealedState(difficulty) {
@@ -57,8 +79,10 @@ function getInitialRevealedState(difficulty) {
 
 export function GameScreen({
   difficultyId,
+  feedbackDurationMs,
   level,
   goHome,
+  startRandomLevel,
   updateStats,
 }) {
   const { styles } = useAppTheme();
@@ -84,6 +108,14 @@ export function GameScreen({
   const [finalAttempts, setFinalAttempts] = useState(0);
   const [finalGuess, setFinalGuess] = useState('');
   const [finished, setFinished] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+  const [roundResult, setRoundResult] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(
+    difficulty.id === 3 ? LEVEL_3_TIME_LIMIT_SECONDS : null,
+  );
+  const [gameSeed, setGameSeed] = useState(0);
+  const feedbackIdRef = useRef(0);
+  const timeoutHandledRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -102,6 +134,10 @@ export function GameScreen({
       setFinalAttempts(0);
       setFinalGuess('');
       setFinished(false);
+      setFeedback(null);
+      setRoundResult(null);
+      setTimeLeft(difficulty.id === 3 ? LEVEL_3_TIME_LIMIT_SECONDS : null);
+      timeoutHandledRef.current = false;
 
       const nextPuzzle = await createPuzzle(level);
       const savedStats = await AsyncStorage.getItem(STORAGE_KEYS.stats);
@@ -119,7 +155,7 @@ export function GameScreen({
     return () => {
       mounted = false;
     };
-  }, [level, difficultyId]);
+  }, [level, difficultyId, gameSeed]);
 
   const progress = solved.filter(Boolean).length;
   const finalAttemptsLeft =
@@ -131,6 +167,7 @@ export function GameScreen({
     !finished &&
     hasEnoughSolvedForFinal &&
     (finalAttemptsLeft === null || finalAttemptsLeft > 0);
+  const hasTimeLimit = difficulty.id === 3;
 
   function columnHasAttemptsLeft(columnIndex, attemptsState = columnAttempts) {
     return (
@@ -189,8 +226,26 @@ export function GameScreen({
     nextScore = score,
     nextTotalAttempts = totalAttempts,
     nextSuccessfulAttempts = successfulAttempts,
+    status = 'lost',
+    title = 'Runda je prekinuta',
   }) {
     setFinished(true);
+    if (puzzle) {
+      revealFullPuzzle();
+    }
+    setRoundResult({
+      detail: message,
+      status,
+      title,
+    });
+    setFeedback({
+      answer: message,
+      title,
+      type: 'wrong',
+    });
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ animated: true, y: 0 });
+    }, 50);
     await updateStats({
       completed: false,
       perfect: false,
@@ -198,14 +253,9 @@ export function GameScreen({
       successfulAttempts: nextSuccessfulAttempts,
       totalAttempts: nextTotalAttempts,
     });
-    Alert.alert('Runda je prekinuta', message);
   }
 
-  async function surrenderGame() {
-    if (finished) {
-      return;
-    }
-
+  function revealFullPuzzle() {
     setSolved([true, true, true, true]);
     setRevealed({
       0: [0, 1, 2, 3],
@@ -215,9 +265,85 @@ export function GameScreen({
     });
     setGuesses(puzzle.columns.map((column) => column.answer));
     setFinalGuess(puzzle.finalAnswer);
+  }
+
+  async function finishTimedOutRound() {
+    if (finished || !puzzle || timeoutHandledRef.current) {
+      return;
+    }
+
+    timeoutHandledRef.current = true;
+    revealFullPuzzle();
+    await finishFailedRound({
+      message: 'Vrijeme je isteklo. Rješenja su otvorena bez dodatnih bodova.',
+      status: 'timeout',
+      title: 'Vrijeme je isteklo',
+    });
+  }
+
+  useEffect(() => {
+    if (!hasTimeLimit || loading || finished) {
+      return undefined;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((current) => {
+        if (current === null) {
+          return null;
+        }
+
+        return Math.max(current - 1, 0);
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [finished, hasTimeLimit, loading]);
+
+  useEffect(() => {
+    if (timeLeft !== 0 || !hasTimeLimit || loading || finished || !puzzle) {
+      return;
+    }
+
+    finishTimedOutRound();
+  }, [finished, hasTimeLimit, loading, puzzle, timeLeft]);
+
+  function showTemporaryFeedback(nextFeedback, durationMs = feedbackDurationMs) {
+    const feedbackId = feedbackIdRef.current + 1;
+    feedbackIdRef.current = feedbackId;
+    setFeedback(nextFeedback);
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ animated: true, y: 0 });
+    }, 50);
+
+    setTimeout(() => {
+      if (feedbackIdRef.current === feedbackId) {
+        setFeedback(null);
+      }
+    }, durationMs);
+  }
+
+  async function confirmSurrenderGame() {
+    if (finished) {
+      return;
+    }
+
+    Alert.alert(
+      'Predaj partiju',
+      'Sigurno želiš da predaš partiju? Rješenja će se otvoriti i partija se računa kao izgubljena.',
+      [
+        { text: 'Odustani', style: 'cancel' },
+        { text: 'Predaj', style: 'destructive', onPress: surrenderGame },
+      ],
+    );
+  }
+
+  async function surrenderGame() {
+    revealFullPuzzle();
     await finishFailedRound({
       message: 'Partija je predata. Rješenja su otvorena bez dodatnih bodova.',
       nextScore: 0,
+      status: 'surrendered',
+      title: 'Partija je predata',
     });
   }
 
@@ -238,10 +364,11 @@ export function GameScreen({
     }
 
     if (score < difficulty.buyAnswerCost) {
-      Alert.alert(
-        'Nema dovoljno poena',
-        `Za kupovinu odgovora treba ${difficulty.buyAnswerCost} poena.`,
-      );
+      showTemporaryFeedback({
+        answer: `Za kupovinu odgovora treba ${difficulty.buyAnswerCost} poena.`,
+        title: 'Nema dovoljno poena',
+        type: 'wrong',
+      });
       return;
     }
 
@@ -261,6 +388,11 @@ export function GameScreen({
       const next = [...current];
       next[columnIndex] = column.answer;
       return next;
+    });
+    showTemporaryFeedback({
+      answer: column.answer,
+      title: 'Odgovor kupljen',
+      type: 'skipped',
     });
 
     if (cannotContinueRound(nextSolved, columnAttempts, nextScore, finalAttempts)) {
@@ -285,12 +417,21 @@ export function GameScreen({
     }, 120);
   }
 
+  function restartGame() {
+    setGameSeed((current) => current + 1);
+    scrollRef.current?.scrollTo({ animated: true, y: 0 });
+  }
+
   async function submitColumn(columnIndex) {
     const column = puzzle.columns[columnIndex];
     const attemptLimit = difficulty.columnAttempts;
 
     if (attemptLimit !== null && columnAttempts[columnIndex] >= attemptLimit) {
-      Alert.alert('Nema pokušaja', 'Potrošio si sve pokušaje za ovu kolonu.');
+      showTemporaryFeedback({
+        answer: 'Potrošio si sve pokušaje za ovu kolonu.',
+        title: 'Nema pokušaja',
+        type: 'wrong',
+      });
       return;
     }
 
@@ -311,7 +452,16 @@ export function GameScreen({
         return;
       }
 
-      Alert.alert('Nije tačno', 'Probaj još jednu asocijaciju ili drugi odgovor.');
+      setGuesses((current) => {
+        const next = [...current];
+        next[columnIndex] = '';
+        return next;
+      });
+      showTemporaryFeedback({
+        answer: randomItem(WRONG_COLUMN_MESSAGES),
+        title: 'Nije tačno',
+        type: 'wrong',
+      });
       return;
     }
 
@@ -337,20 +487,28 @@ export function GameScreen({
       next[columnIndex] = column.answer;
       return next;
     });
+    showTemporaryFeedback({
+      answer: column.answer,
+      title: `Tačno +${points}`,
+      type: 'correct',
+    });
   }
 
   async function submitFinal() {
     if (!hasEnoughSolvedForFinal) {
-      Alert.alert(
-        'Zaključano',
-        `Konačno rješenje možeš pogađati nakon ${difficulty.finalRequiredSolvedColumns} pogođene kolone.`,
-      );
+      showTemporaryFeedback({
+        answer: `Konačno rješenje možeš pogađati nakon ${difficulty.finalRequiredSolvedColumns} pogođene kolone.`,
+        title: 'Zaključano',
+        type: 'wrong',
+      });
       return;
     }
 
     if (difficulty.finalAttempts !== null && finalAttempts >= difficulty.finalAttempts) {
       await finishFailedRound({
         message: 'Žao mi je, ne možete nastaviti sa ovom rundom.',
+        status: 'lost',
+        title: 'Nema više poteza',
       });
       return;
     }
@@ -366,11 +524,18 @@ export function GameScreen({
         await finishFailedRound({
           message: 'Žao mi je, ne možete nastaviti sa ovom rundom.',
           nextTotalAttempts,
+          status: 'lost',
+          title: 'Nema više pokušaja',
         });
         return;
       }
 
-      Alert.alert('Nije konačno rješenje', 'Pogledaj odgovore i pokušaj ponovo.');
+      setFinalGuess('');
+      showTemporaryFeedback({
+        answer: randomItem(WRONG_FINAL_MESSAGES),
+        title: 'Nije konačno rješenje',
+        type: 'wrong',
+      });
       return;
     }
 
@@ -400,6 +565,11 @@ export function GameScreen({
     });
     setGuesses(puzzle.columns.map((column) => column.answer));
     setFinished(true);
+    setRoundResult({
+      detail: 'Konačno rješenje je pogođeno, preostale kolone su otvorene i bodovane.',
+      status: 'won',
+      title: 'Pobjeda',
+    });
     setRecord((current) => Math.max(current, finalScore));
     await updateStats({
       completed: true,
@@ -408,7 +578,14 @@ export function GameScreen({
       successfulAttempts: nextSuccessfulAttempts,
       totalAttempts: nextTotalAttempts,
     });
-    Alert.alert('Bravo!', `Konačno rješenje je ${puzzle.finalAnswer.toUpperCase()}.`);
+    setFeedback({
+      answer: puzzle.finalAnswer,
+      title: `Bravo +${finalScore - score}`,
+      type: 'correct',
+    });
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ animated: true, y: 0 });
+    }, 50);
   }
 
   if (loading || !puzzle) {
@@ -441,6 +618,13 @@ export function GameScreen({
               <ScoreBox label="Poeni" value={score} colors={['#5d95ef', '#797fe5']} />
               <ScoreBox label="Težina" value={difficulty.id} colors={['#9d62dd', '#b859e0']} />
               <ScoreBox label="Rekord" value={record} colors={['#b8717b', '#b98565']} />
+              {hasTimeLimit ? (
+                <ScoreBox
+                  label="Vrijeme"
+                  value={formatTime(timeLeft || 0)}
+                  colors={['#e25656', '#f59e0b']}
+                />
+              ) : null}
             </View>
             <View style={styles.progressTrack}>
               {Array.from({ length: 4 }).map((_, index) => (
@@ -456,7 +640,7 @@ export function GameScreen({
             <View style={styles.sourceRow}>
               <Pressable
                 disabled={finished}
-                onPress={surrenderGame}
+                onPress={confirmSurrenderGame}
                 style={[styles.surrenderButton, finished && styles.disabledButton]}
               >
                 <Text style={styles.surrenderButtonText}>Predaj partiju</Text>
@@ -466,6 +650,31 @@ export function GameScreen({
               ) : null}
             </View>
           </View>
+
+          {feedback ? (
+            <View
+              style={[
+                styles.blitzFeedbackBox,
+                feedback.type === 'skipped' && styles.blitzSkippedBox,
+                feedback.type === 'wrong' && styles.blitzWrongBox,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.blitzFeedbackTitle,
+                  feedback.type === 'skipped' && styles.blitzSkippedTitle,
+                  feedback.type === 'wrong' && styles.blitzWrongTitle,
+                ]}
+              >
+                {feedback.title}
+              </Text>
+              <Text style={styles.blitzFeedbackAnswer}>
+                {feedback.type === 'correct' || feedback.type === 'skipped'
+                  ? feedback.answer.toUpperCase()
+                  : feedback.answer}
+              </Text>
+            </View>
+          ) : null}
 
           <View style={styles.columnsGrid}>
             {puzzle.columns.map((column, columnIndex) => (
@@ -529,9 +738,31 @@ export function GameScreen({
               <Text style={styles.finalButtonText}>Provjeri</Text>
             </Pressable>
             {finished ? (
-              <Pressable onPress={goHome} style={styles.homeButton}>
-                <Text style={styles.homeButtonText}>Nazad na glavni meni</Text>
-              </Pressable>
+              <View style={styles.blitzResultStats}>
+                <Text style={styles.infoTitle}>
+                  {roundResult?.status === 'won'
+                    ? '✅ Partija završena'
+                    : roundResult?.status === 'timeout'
+                      ? '⏱️ Vrijeme je isteklo'
+                      : roundResult?.status === 'surrendered'
+                        ? '🏳️ Partija predata'
+                        : '❌ Partija izgubljena'}
+                </Text>
+                <Text style={styles.infoText}>{roundResult?.detail}</Text>
+                <Text style={styles.infoText}>Konačno rješenje: {puzzle.finalAnswer}</Text>
+                <Text style={styles.infoText}>Poeni: {score}</Text>
+                <Text style={styles.infoText}>Tačni odgovori: {successfulAttempts}</Text>
+                <Text style={styles.infoText}>Ukupno pokušaja: {totalAttempts}</Text>
+                <Pressable onPress={restartGame} style={styles.finalButton}>
+                  <Text style={styles.finalButtonText}>Igraj istu kategoriju</Text>
+                </Pressable>
+                <Pressable onPress={startRandomLevel} style={styles.finalButton}>
+                  <Text style={styles.finalButtonText}>Nova random partija</Text>
+                </Pressable>
+                <Pressable onPress={goHome} style={styles.homeButton}>
+                  <Text style={styles.homeButtonText}>Nazad na glavni meni</Text>
+                </Pressable>
+              </View>
             ) : null}
           </View>
         </ScrollView>

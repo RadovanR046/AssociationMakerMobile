@@ -14,6 +14,30 @@ function formatAttempts(value) {
   return value === null ? 'neograničeno' : value;
 }
 
+function formatSelectedDifficultyIntro(difficulty) {
+  if (difficulty.id === 1) {
+    return 'Opuštena igra: kategorija je prikazana, a svaka kolona počinje sa jednim otvorenim poljem.';
+  }
+
+  if (difficulty.id === 2) {
+    return 'Uravnotežen izazov: dio pomoći dobijaš na početku, ali moraš pažljivije čuvati pokušaje.';
+  }
+
+  return 'Najteži izazov: bez početne pomoći, bez prikazane kategorije i sa 4 minuta za rješavanje.';
+}
+
+function formatSelectedDifficultyReward(difficulty) {
+  if (difficulty.id === 1) {
+    return 'Bonus je manji, ali je kupovina odgovora najjeftinija.';
+  }
+
+  if (difficulty.id === 2) {
+    return 'Bonus je veći, ali je i kupovina odgovora skuplja.';
+  }
+
+  return 'Najveći bonus i najviše poena, ali je kupovina odgovora najskuplja.';
+}
+
 export function SettingsScreen({ settings, stats, setSettings, resetStats, goHome }) {
   const { styles } = useAppTheme();
   const selectedDifficulty = DIFFICULTIES[settings.difficultyId] || DIFFICULTIES[1];
@@ -157,25 +181,23 @@ export function SettingsScreen({ settings, stats, setSettings, resetStats, goHom
             })}
           </View>
           <View style={styles.difficultySummary}>
-            <Text style={styles.infoText}>
-              Konačno rješenje se otključava nakon {selectedDifficulty.finalRequiredSolvedColumns}{' '}
-              pogođene kolone.
-            </Text>
+            <Text style={styles.infoText}>{formatSelectedDifficultyIntro(selectedDifficulty)}</Text>
             <Text style={styles.infoText}>
               Pokušaji po koloni: {formatAttempts(selectedDifficulty.columnAttempts)} • konačno:{' '}
               {formatAttempts(selectedDifficulty.finalAttempts)}
             </Text>
             <Text style={styles.infoText}>
-              Kupovina odgovora: {selectedDifficulty.buyAnswerCost} poena
+              {formatSelectedDifficultyReward(selectedDifficulty)} Konačno rješenje nosi{' '}
+              {selectedDifficulty.finalBonus} poena.
             </Text>
           </View>
         </View>
 
         <View style={styles.settingsPanel}>
           <Text style={styles.panelTitle}>O aplikaciji</Text>
-          <InfoRow label="Verzija" value="1.0.0" />
+          <InfoRow label="Verzija" value="1.2.0" />
           <InfoRow label="Broj kategorija" value={LEVELS.length} />
-          <InfoRow label="Datum izdanja" value="April 2026" />
+          <InfoRow label="Datum izdanja" value="Jun 2026" />
           <InfoRow label="Odigrane partije" value={stats.totalGames} />
         </View>
 
@@ -199,7 +221,8 @@ export function SettingsScreen({ settings, stats, setSettings, resetStats, goHom
         <View style={styles.settingsPanel}>
           <Text style={styles.panelTitle}>Savjeti</Text>
           <Text style={styles.infoText}>• Podaci se čuvaju lokalno na uređaju.</Text>
-          <Text style={styles.infoText}>• Na težim partijama kategorija nije prikazana.</Text>
+          <Text style={styles.infoText}>• Na levelima 2 i 3 kategorija nije prikazana u standardnoj igri.</Text>
+          <Text style={styles.infoText}>• Na levelu 3 standardna asocijacija traje 4 minuta.</Text>
           <Text style={styles.infoText}>• Asocijacije se učitavaju iz lokalne baze u aplikaciji.</Text>
           <Text style={styles.infoText}>• Kupovina odgovora pomaže, ali kvari besprijekornu partiju.</Text>
         </View>

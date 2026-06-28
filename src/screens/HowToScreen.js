@@ -10,6 +10,26 @@ function formatAttempts(value) {
   return value === null ? 'neograničeno' : value;
 }
 
+function formatColumnPoints(difficulty) {
+  if (difficulty.id === 1) {
+    return `1 otvoreno ${difficulty.columnPoints[1]}, 2 otvorena ${difficulty.columnPoints[2]}, 3 otvorena ${difficulty.columnPoints[3]}, 4 otvorena ${difficulty.columnPoints[4]}`;
+  }
+
+  return `0 otvorenih ${difficulty.zeroOpenColumnPoints}, 1 otvoreno ${difficulty.columnPoints[1]}, 2 otvorena ${difficulty.columnPoints[2]}, 3 otvorena ${difficulty.columnPoints[3]}, 4 otvorena ${difficulty.columnPoints[4]}`;
+}
+
+function getDifficultyNote(difficulty) {
+  if (difficulty.id === 1) {
+    return 'Na lakom levelu se automatski otvara po jedno polje u svakoj koloni i kategorija je prikazana.';
+  }
+
+  if (difficulty.id === 2) {
+    return 'Na srednjem levelu se automatski otvara po jedno polje u dvije nasumične kolone.';
+  }
+
+  return 'Na teškom levelu nema početno otvorenih polja, kategorija nije prikazana i partija traje 4 minuta.';
+}
+
 export function HowToScreen({ goHome }) {
   const { styles } = useAppTheme();
 
@@ -20,24 +40,31 @@ export function HowToScreen({ goHome }) {
         <Text style={styles.sectionTitle}>Osnovna pravila</Text>
         <RuleCard
           colors={['#2f80ff', '#00b8d9']}
-          icon="⊙"
+          icon="👆"
           step="Korak 1"
           title="Otvori asocijacije"
-          text="Dodirni skrivena polja u kolonama A, B, C i D. Što manje polja otvoriš, više poena možeš osvojiti."
+          text="Dodirni skrivena polja u kolonama A, B, C i D. Što manje polja otvoriš prije tačnog odgovora, više poena dobijaš za tu kolonu."
         />
         <RuleCard
           colors={['#0bc66b', '#00a870']}
-          icon="◉"
+          icon="✅"
           step="Korak 2"
           title="Pogodi kolone"
-          text="Svaka kolona ima svoje rješenje. Težina određuje broj pokušaja, početno otvorena polja i cijenu kupovine odgovora."
+          text="Svaka kolona ima svoje rješenje. Težina određuje početno otvorena polja, broj pokušaja, cijenu kupovine odgovora i pravila za konačno rješenje."
         />
         <RuleCard
           colors={['#f8b500', '#ff5a12']}
           icon="🏆"
           step="Korak 3"
           title="Konačno rješenje"
-          text="Konačno rješenje se otključava nakon određenog broja pogođenih kolona. Kada ga pogodiš, otvaraju se i boduju preostale kolone."
+          text="Konačno rješenje se otključava nakon određenog broja pogođenih kolona. Kada ga pogodiš, otvaraju se i boduju preostale kolone, a zatim se dodaje bonus."
+        />
+        <RuleCard
+          colors={['#7c3aed', '#db2777']}
+          icon="⏱️"
+          step="Level 3"
+          title="Vremenski izazov"
+          text="Na teškom levelu standardne asocijacije imaš 4 minuta. Ako vrijeme istekne, partija se računa kao izgubljena i sva rješenja se otvaraju bez dodatnih bodova."
         />
 
         <Text style={styles.sectionTitle}>Blitz</Text>
@@ -46,7 +73,7 @@ export function HowToScreen({ goHome }) {
           icon="⚡"
           step=""
           title="Trka sa vremenom"
-          text="Blitz prikazuje jednu mini-asocijaciju: nekoliko skrivenih polja i jedno rješenje. Riješi što više zagonetki za maksimalan broj poena."
+          text="Blitz prikazuje jednu mini-asocijaciju: nekoliko skrivenih polja i jedno rješenje. Riješi što više zagonetki prije isteka vremena ili preskoči onu koja te zaustavi."
         />
         <View style={styles.infoPanel}>
           <Text style={styles.infoTitle}>Pravila za Blitz</Text>
@@ -57,7 +84,13 @@ export function HowToScreen({ goHome }) {
             • Broj polja zavisi od težine: lako 5, srednje 4, teško 3 polja.
           </Text>
           <Text style={styles.infoText}>
-            • Bodovi zavise od težine i broja otvorenih polja: lako 50/40/30/20/10, srednje 40/30/20/10, teško 30/20/10.
+            • Bodovi zavise od težine i broja otvorenih polja: lako 50/40/30/20/10, srednje 50/40/30/20, teško 60/50/40.
+          </Text>
+          <Text style={styles.infoText}>
+            • Kod izbora kategorije možeš izabrati konkretnu kategoriju ili Random za nasumične mini-asocijacije.
+          </Text>
+          <Text style={styles.infoText}>
+            • Preskočena asocijacija prikazuje rješenje i odmah se učitava sljedeća.
           </Text>
         </View>
 
@@ -67,11 +100,8 @@ export function HowToScreen({ goHome }) {
             <Text style={styles.infoTitle}>
               {difficulty.id}. {difficulty.label}
             </Text>
-            <Text style={styles.infoText}>
-              • Poeni kolone: 0 otvorenih {difficulty.zeroOpenColumnPoints}, 1 otvoreno{' '}
-              {difficulty.columnPoints[1]}, 2 otvorena {difficulty.columnPoints[2]}, 3 otvorena{' '}
-              {difficulty.columnPoints[3]}, 4 otvorena {difficulty.columnPoints[4]}
-            </Text>
+            <Text style={styles.infoText}>• {getDifficultyNote(difficulty)}</Text>
+            <Text style={styles.infoText}>• Poeni kolone: {formatColumnPoints(difficulty)}</Text>
             <Text style={styles.infoText}>
               • Pokušaji po koloni: {formatAttempts(difficulty.columnAttempts)}
             </Text>

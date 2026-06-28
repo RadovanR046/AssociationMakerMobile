@@ -15,9 +15,9 @@ export function BlitzLevelsScreen({ goHome, startBlitz }) {
       <ScrollView contentContainerStyle={styles.levelList}>
         <LinearGradient
           colors={['#ef4444', '#f97316']}
-          style={styles.levelCard}
+          style={[styles.levelCard, styles.levelCardWide]}
         >
-          <Text style={styles.levelIcon}>?</Text>
+          <Text style={styles.levelIcon}>🎲</Text>
           <Text style={styles.levelTitle}>Random</Text>
           <Pressable onPress={() => startBlitz(null)} style={styles.playButton}>
             <Text style={styles.playButtonText}>Igraj</Text>

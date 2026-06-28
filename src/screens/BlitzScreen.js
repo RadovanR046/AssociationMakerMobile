@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -33,12 +32,21 @@ const BLITZ_CLUE_COUNTS = {
 
 const BLITZ_POINTS = {
   1: [50, 40, 30, 20, 10],
-  2: [40, 30, 20, 10],
-  3: [30, 20, 10],
+  2: [50, 40, 30, 20],
+  3: [60, 50, 40],
 };
+const WRONG_BLITZ_MESSAGES = [
+  'Nije to rješenje. Otvori još jedno polje ili probaj drugu riječ.',
+  'Blitz ne prašta, ali daje novu šansu. Probaj opet.',
+  'Ova mini-asocijacija traži drugi odgovor.',
+];
 
 function randomLevel() {
   return LEVELS[Math.floor(Math.random() * LEVELS.length)];
+}
+
+function randomItem(items) {
+  return items[Math.floor(Math.random() * items.length)];
 }
 
 function formatTime(totalSeconds) {
@@ -54,7 +62,9 @@ function getBlitzPoints(openedCount, difficultyId) {
 }
 
 export function BlitzScreen({
+  bestScoreForDifficulty = 0,
   difficultyId,
+  feedbackDurationMs,
   goHome,
   level,
   updateStats,
@@ -74,22 +84,28 @@ export function BlitzScreen({
   const [totalAttempts, setTotalAttempts] = useState(0);
   const [successfulAttempts, setSuccessfulAttempts] = useState(0);
   const [missedPuzzles, setMissedPuzzles] = useState([]);
-  const [correctFeedback, setCorrectFeedback] = useState(null);
+  const [feedback, setFeedback] = useState(null);
   const scoreRef = useRef(0);
   const totalAttemptsRef = useRef(0);
   const successfulAttemptsRef = useRef(0);
   const finishedRef = useRef(false);
+  const seenAnswersRef = useRef([]);
 
   const loadPuzzle = useCallback(async () => {
     setLoading(true);
     const activeLevel = level || randomLevel();
-    const nextPuzzle = await createBlitzPuzzle(activeLevel, clueCount);
+    const nextPuzzle = await createBlitzPuzzle(
+      activeLevel,
+      clueCount,
+      seenAnswersRef.current,
+    );
+    seenAnswersRef.current = [...seenAnswersRef.current, nextPuzzle.answer];
 
     setPuzzle(nextPuzzle);
     setRevealed([]);
     setGuess('');
     setSolved(false);
-    setCorrectFeedback(null);
+    setFeedback(null);
     setLoading(false);
   }, [clueCount, level]);
 
@@ -115,12 +131,13 @@ export function BlitzScreen({
     setTotalAttempts(0);
     setSuccessfulAttempts(0);
     setMissedPuzzles([]);
-    setCorrectFeedback(null);
+    setFeedback(null);
     setFinished(false);
     scoreRef.current = 0;
     totalAttemptsRef.current = 0;
     successfulAttemptsRef.current = 0;
     finishedRef.current = false;
+    seenAnswersRef.current = [];
     loadPuzzle();
   }, [duration, loadPuzzle]);
 
@@ -183,26 +200,34 @@ export function BlitzScreen({
     setRevealed((current) => [...current, clueIndex]);
   }
 
+  function showTemporaryFeedback(nextFeedback, durationMs = feedbackDurationMs) {
+    setFeedback(nextFeedback);
+    setTimeout(() => {
+      if (!finishedRef.current) {
+        setFeedback(null);
+      }
+    }, durationMs);
+  }
+
   function skipPuzzle() {
-    if (finished || loading) {
+    if (finished || loading || solved) {
       return;
     }
 
-    Alert.alert(
-      'Preskočena asocijacija',
-      `Rješenje je: ${puzzle.answer.toUpperCase()}`,
-      [
-        {
-          text: 'Sljedeća',
-          onPress: () => {
-            if (!finishedRef.current) {
-              addMissedPuzzle('Preskočeno');
-              loadPuzzle();
-            }
-          },
-        },
-      ],
-    );
+    addMissedPuzzle('Preskočeno');
+    setSolved(true);
+    setRevealed(puzzle.clues.map((_clue, index) => index));
+    setGuess(puzzle.answer);
+    setFeedback({
+      answer: puzzle.answer,
+      title: 'Rješenje asocijacije',
+      type: 'skipped',
+    });
+    setTimeout(() => {
+      if (!finishedRef.current) {
+        loadPuzzle();
+      }
+    }, Math.round(feedbackDurationMs * 1.5));
   }
 
   async function submitGuess() {
@@ -215,7 +240,12 @@ export function BlitzScreen({
     setTotalAttempts(nextTotalAttempts);
 
     if (normalize(guess) !== normalize(puzzle.answer)) {
-      Alert.alert('Nije tacno', 'Probaj jos jedno polje ili drugi odgovor.');
+      setGuess('');
+      showTemporaryFeedback({
+        answer: randomItem(WRONG_BLITZ_MESSAGES),
+        title: 'Nije tačno',
+        type: 'wrong',
+      });
       return;
     }
 
@@ -228,9 +258,11 @@ export function BlitzScreen({
     setScore(nextScore);
     setSuccessfulAttempts(nextSuccessfulAttempts);
     setSolved(true);
-    setCorrectFeedback({
+    setFeedback({
       answer: puzzle.answer,
       points,
+      title: `Tačno +${points}`,
+      type: 'correct',
     });
     setRevealed(puzzle.clues.map((_clue, index) => index));
     setGuess(puzzle.answer);
@@ -238,7 +270,7 @@ export function BlitzScreen({
       if (!finishedRef.current) {
         loadPuzzle();
       }
-    }, 900);
+    }, feedbackDurationMs);
   }
 
   async function leaveBlitz() {
@@ -259,11 +291,12 @@ export function BlitzScreen({
     setTotalAttempts(0);
     setSuccessfulAttempts(0);
     setMissedPuzzles([]);
-    setCorrectFeedback(null);
+    setFeedback(null);
     scoreRef.current = 0;
     totalAttemptsRef.current = 0;
     successfulAttemptsRef.current = 0;
     finishedRef.current = false;
+    seenAnswersRef.current = [];
     loadPuzzle();
   }
 
@@ -280,6 +313,11 @@ export function BlitzScreen({
   }
 
   const possiblePoints = getBlitzPoints(revealed.length, difficulty.id);
+  const skippedCount = missedPuzzles.filter(
+    (missedPuzzle) => missedPuzzle.reason === 'Preskočeno',
+  ).length;
+  const averagePoints = successfulAttempts ? Math.round(score / successfulAttempts) : 0;
+  const displayedBestScore = Math.max(bestScoreForDifficulty, score);
 
   return (
     <Background>
@@ -309,7 +347,7 @@ export function BlitzScreen({
           <View style={styles.blitzCard}>
             <View style={styles.columnHeader}>
               <View style={styles.columnBadge}>
-                <Text style={styles.columnLetter}>B</Text>
+                <Text style={styles.columnLetter}>⚡</Text>
               </View>
               <View style={styles.columnPoints}>
                 <Text style={styles.columnPointsText}>{possiblePoints}</Text>
@@ -352,6 +390,28 @@ export function BlitzScreen({
               </Text>
               <Text style={styles.attemptText}>Pogodjeno: {successfulAttempts}</Text>
             </View>
+            {feedback ? (
+              <View
+                style={[
+                  styles.blitzFeedbackBox,
+                  feedback.type === 'skipped' && styles.blitzSkippedBox,
+                  feedback.type === 'wrong' && styles.blitzWrongBox,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.blitzFeedbackTitle,
+                    feedback.type === 'skipped' && styles.blitzSkippedTitle,
+                    feedback.type === 'wrong' && styles.blitzWrongTitle,
+                  ]}
+                >
+                  {feedback.title}
+                </Text>
+                <Text style={styles.blitzFeedbackAnswer}>
+                  {feedback.answer.toUpperCase()}
+                </Text>
+              </View>
+            ) : null}
             <TextInput
               autoCapitalize="none"
               autoCorrect={false}
@@ -377,12 +437,12 @@ export function BlitzScreen({
                 <Text style={styles.okButtonText}>{solved ? 'TACNO' : 'Provjeri'}</Text>
               </Pressable>
               <Pressable
-                disabled={finished || loading}
+                disabled={finished || loading || solved}
                 onPress={skipPuzzle}
                 style={[
                   styles.skipButton,
                   styles.blitzActionButton,
-                  (finished || loading) && styles.disabledButton,
+                  (finished || loading || solved) && styles.disabledButton,
                 ]}
               >
                 <Text style={styles.skipButtonText}>Sljedeca</Text>
@@ -397,7 +457,10 @@ export function BlitzScreen({
                 <Text style={styles.infoText}>Poeni: {score}</Text>
                 <Text style={styles.infoText}>Pogođeno: {successfulAttempts}</Text>
                 <Text style={styles.infoText}>Pokušaji: {totalAttempts}</Text>
-                <Text style={styles.infoText}>Preskočeno/propušteno: {missedPuzzles.length}</Text>
+                <Text style={styles.infoText}>Preskočeno: {skippedCount}</Text>
+                <Text style={styles.infoText}>Propušteno ukupno: {missedPuzzles.length}</Text>
+                <Text style={styles.infoText}>Prosjek po pogođenoj: {averagePoints}</Text>
+                <Text style={styles.infoText}>Najbolji rezultat levela: {displayedBestScore}</Text>
               </View>
 
               <Text style={styles.finalHint}>Propuštena rješenja</Text>
@@ -422,7 +485,9 @@ export function BlitzScreen({
               </View>
 
               <Pressable onPress={restartBlitz} style={styles.finalButton}>
-                <Text style={styles.finalButtonText}>Igraj ponovo</Text>
+                <Text style={styles.finalButtonText}>
+                  {level ? 'Igraj istu kategoriju' : 'Igraj Random opet'}
+                </Text>
               </Pressable>
               <Pressable onPress={goHome} style={styles.homeButton}>
                 <Text style={styles.homeButtonText}>Nazad na glavni meni</Text>

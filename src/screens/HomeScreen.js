@@ -2,15 +2,12 @@ import { Text, View } from 'react-native';
 
 import { Background } from '../components/Background';
 import { GradientButton } from '../components/GradientButton';
-import { LEVELS } from '../constants/levels';
+import { getDifficulty } from '../constants/difficulties';
 import { useAppTheme } from '../theme/ThemeContext';
 
-function getRandomCategory() {
-  return LEVELS[Math.floor(Math.random() * LEVELS.length)];
-}
-
-export function HomeScreen({ setScreen, startLevel }) {
+export function HomeScreen({ difficultyId, setScreen }) {
   const { styles } = useAppTheme();
+  const difficulty = getDifficulty(difficultyId);
 
   return (
     <Background>
@@ -19,18 +16,27 @@ export function HomeScreen({ setScreen, startLevel }) {
           <Text style={styles.logoIcon}>🏆</Text>
         </View>
         <Text style={styles.logoTitle}>Asocijacije</Text>
-        <Text style={styles.logoSubtitle}>Igra riječi</Text>
+        <Text style={styles.logoSubtitle}>Igra riječi, logike i brzog zaključivanja.</Text>
+        <View style={styles.homeLevelBadge}>
+          <Text style={styles.homeLevelIcon}>🎚️</Text>
+          <View style={styles.homeLevelCopy}>
+            <Text style={styles.homeLevelLabel}>Trenutna težina</Text>
+            <Text style={styles.homeLevelValue}>
+              Level {difficulty.id} · {difficulty.label}
+            </Text>
+          </View>
+        </View>
 
         <View style={styles.menuStack}>
           <GradientButton
             color="#0fbf67"
-            icon="▶"
+            icon="🎮"
             label="Nova igra"
-            onPress={() => startLevel(getRandomCategory())}
+            onPress={() => setScreen('newGame')}
           />
           <GradientButton
             color="#2563eb"
-            icon="☰"
+            icon="🗂️"
             label="Izbor kategorije"
             onPress={() => setScreen('levels')}
           />
@@ -42,13 +48,13 @@ export function HomeScreen({ setScreen, startLevel }) {
           />
           <GradientButton
             color="#9333ea"
-            icon="▥"
+            icon="📊"
             label="Statistika"
             onPress={() => setScreen('stats')}
           />
           <GradientButton
             color="#f97316"
-            icon="?"
+            icon="📖"
             label="Kako igrati"
             onPress={() => setScreen('how')}
           />
@@ -60,7 +66,7 @@ export function HomeScreen({ setScreen, startLevel }) {
           />
         </View>
 
-        <Text style={styles.versionText}>Verzija 1.0 • 2026</Text>
+        <Text style={styles.versionText}>Verzija 1.2 • 2026</Text>
       </View>
     </Background>
   );

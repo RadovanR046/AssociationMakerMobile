@@ -28,12 +28,23 @@ export async function createPuzzle(level) {
   };
 }
 
-export async function createBlitzPuzzle(level, clueCount = 4) {
-  const final = randomItem(level.finals);
-  const column = randomItem(final.columns);
+export async function createBlitzPuzzle(level, clueCount = 4, excludedAnswers = []) {
+  const excluded = new Set(excludedAnswers.map(normalize));
+  const availableColumns = level.finals.flatMap((final) =>
+    final.columns
+      .filter((column) => !excluded.has(normalize(column.answer)))
+      .map((column) => ({ column, finalAnswer: final.answer })),
+  );
+  const pool = availableColumns.length
+    ? availableColumns
+    : level.finals.flatMap((final) =>
+      final.columns.map((column) => ({ column, finalAnswer: final.answer })),
+    );
+  const { column, finalAnswer } = randomItem(pool);
 
   return {
     answer: column.answer,
+    finalAnswer,
     categoryTitle: level.title,
     clues: shuffle(column.clues).slice(0, clueCount),
   };

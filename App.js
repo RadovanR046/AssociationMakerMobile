@@ -17,9 +17,13 @@ import { GameScreen } from './src/screens/GameScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { HowToScreen } from './src/screens/HowToScreen';
 import { LevelsScreen } from './src/screens/LevelsScreen';
+import { NewGameScreen } from './src/screens/NewGameScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { StatsScreen } from './src/screens/StatsScreen';
 import { ThemeProvider } from './src/theme/ThemeContext';
+
+const ASSOCIATION_FEEDBACK_DURATION_MS = 2000;
+const BLITZ_FEEDBACK_DURATION_MS = 1000;
 
 export default function App() {
   const [screen, setScreen] = useState('home');
@@ -80,6 +84,11 @@ export default function App() {
   function startLevel(level) {
     setSelectedLevel(level);
     setScreen('game');
+  }
+
+  function startRandomLevel() {
+    const randomLevel = LEVELS[Math.floor(Math.random() * LEVELS.length)];
+    startLevel(randomLevel);
   }
 
   function startBlitz(level) {
@@ -150,6 +159,18 @@ export default function App() {
       return <LevelsScreen goHome={goHome} startLevel={startLevel} />;
     }
 
+    if (screen === 'newGame') {
+      return (
+        <NewGameScreen
+          chooseCategory={() => setScreen('levels')}
+          difficultyId={settings.difficultyId}
+          goHome={goHome}
+          openSettings={() => setScreen('settings')}
+          startLevel={startLevel}
+        />
+      );
+    }
+
     if (screen === 'blitzLevels') {
       return <BlitzLevelsScreen goHome={goHome} startBlitz={startBlitz} />;
     }
@@ -178,8 +199,10 @@ export default function App() {
       return (
         <GameScreen
           difficultyId={settings.difficultyId}
+          feedbackDurationMs={ASSOCIATION_FEEDBACK_DURATION_MS}
           goHome={goHome}
           level={selectedLevel}
+          startRandomLevel={startRandomLevel}
           updateStats={updateStats}
         />
       );
@@ -188,7 +211,11 @@ export default function App() {
     if (screen === 'blitzGame') {
       return (
         <BlitzScreen
+          bestScoreForDifficulty={
+            stats.blitz?.bestByDifficulty?.[settings.difficultyId] || 0
+          }
           difficultyId={settings.difficultyId}
+          feedbackDurationMs={BLITZ_FEEDBACK_DURATION_MS}
           goHome={goHome}
           level={selectedBlitzLevel}
           updateStats={updateBlitzStats}
@@ -196,7 +223,7 @@ export default function App() {
       );
     }
 
-    return <HomeScreen setScreen={setScreen} startLevel={startLevel} />;
+    return <HomeScreen difficultyId={settings.difficultyId} setScreen={setScreen} />;
   }, [screen, selectedLevel, selectedBlitzLevel, settings, stats]);
 
   return (

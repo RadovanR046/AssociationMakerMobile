@@ -26,13 +26,13 @@ export function StatsScreen({ stats, goHome }) {
 
   return (
     <Background>
-      <Header title="Statistika" icon="🏆" onBack={goHome} />
+      <Header title="Statistika" icon="📊" onBack={goHome} />
       <ScrollView contentContainerStyle={styles.statsList}>
         <Text style={styles.sectionTitle}>Asocijacije</Text>
         <View style={styles.metricGrid}>
           <MetricCard
             colors={['#f59e0b', '#f97316']}
-            icon="Σ"
+            icon="💰"
             label="Ukupan broj poena"
             value={stats.totalScore}
           />
@@ -44,38 +44,38 @@ export function StatsScreen({ stats, goHome }) {
           />
           <MetricCard
             colors={['#84cc16', '#22c55e']}
-            icon="↗"
+            icon="📈"
             label="Prosjek poena"
             value={getAverage(stats)}
           />
           <MetricCard
             colors={['#2563eb', '#06b6d4']}
-            icon="○"
+            icon="🎮"
             label="Odigrane partije"
             value={stats.totalGames}
           />
           <MetricCard
             colors={['#10b981', '#14b8a6']}
-            icon="✓"
+            icon="✅"
             label="Završene partije"
             value={stats.completedGames}
           />
           <MetricCard
             colors={['#ef4444', '#f43f5e']}
-            icon="◆"
+            icon="🔥"
             label="Najduži niz"
             value={stats.longestStreak}
           />
           <MetricCard
             colors={['#0ea5e9', '#3b82f6']}
-            icon="%"
+            icon="🎯"
             label="Tačnost odgovora"
             value={`${getAccuracy(stats)}%`}
           />
           <MetricCard
             colors={['#ec4899', '#d946ef']}
-            description="Bez pogrešnih pokušaja, kupovine odgovora, sve kolone pogođene uz minimalan broj otvorenih polja."
-            icon="☆"
+            description="Partija završena bez pogrešnih pokušaja i bez kupovine odgovora, uz brzo pogođene kolone."
+            icon="⭐"
             label="Perfektne partije"
             value={stats.perfectGames}
           />
@@ -91,43 +91,43 @@ export function StatsScreen({ stats, goHome }) {
           />
           <MetricCard
             colors={['#8b5cf6', '#6366f1']}
-            icon="⚡"
+            icon="🏆"
             label="Najbolji Blitz"
             value={blitzStats.bestScore}
           />
-                    <MetricCard
+          <MetricCard
             colors={['#22c55e', '#16a34a']}
-            icon="1"
+            icon="🟢"
             label="Najbolji rezultat level 1"
             value={blitzBestByDifficulty[1]}
           />
           <MetricCard
             colors={['#f59e0b', '#f97316']}
-            icon="2"
+            icon="🟡"
             label="Najbolji rezultat level 2"
             value={blitzBestByDifficulty[2]}
           />
           <MetricCard
             colors={['#ef4444', '#dc2626']}
-            icon="3"
+            icon="🔴"
             label="Najbolji rezultat level 3"
             value={blitzBestByDifficulty[3]}
           />
           <MetricCard
             colors={['#2563eb', '#06b6d4']}
-            icon="○"
+            icon="🎮"
             label="Odigrane partije"
             value={blitzStats.totalGames}
           />
           <MetricCard
             colors={['#10b981', '#14b8a6']}
-            icon="✓"
+            icon="✅"
             label="Završene partije"
             value={blitzStats.completedGames}
           />
           <MetricCard
             colors={['#0ea5e9', '#3b82f6']}
-            icon="%"
+            icon="🎯"
             label="Tačnost odgovora"
             value={`${getAccuracy(blitzStats)}%`}
           />
