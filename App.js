@@ -81,14 +81,17 @@ export default function App() {
 
   const goHome = () => setScreen('home');
 
+  function getRandomLevel() {
+    return LEVELS[Math.floor(Math.random() * LEVELS.length)];
+  }
+
   function startLevel(level) {
-    setSelectedLevel(level);
+    setSelectedLevel(settings.difficultyId === 3 ? getRandomLevel() : level);
     setScreen('game');
   }
 
   function startRandomLevel() {
-    const randomLevel = LEVELS[Math.floor(Math.random() * LEVELS.length)];
-    startLevel(randomLevel);
+    startLevel(getRandomLevel());
   }
 
   function startBlitz(level) {

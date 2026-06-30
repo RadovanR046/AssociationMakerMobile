@@ -35,18 +35,10 @@ const BLITZ_POINTS = {
   2: [50, 40, 30, 20],
   3: [60, 50, 40],
 };
-const WRONG_BLITZ_MESSAGES = [
-  'Nije to rješenje. Otvori još jedno polje ili probaj drugu riječ.',
-  'Blitz ne prašta, ali daje novu šansu. Probaj opet.',
-  'Ova mini-asocijacija traži drugi odgovor.',
-];
+const WRONG_BLITZ_MESSAGE = 'Probaj drugi odgovor.';
 
 function randomLevel() {
   return LEVELS[Math.floor(Math.random() * LEVELS.length)];
-}
-
-function randomItem(items) {
-  return items[Math.floor(Math.random() * items.length)];
 }
 
 function formatTime(totalSeconds) {
@@ -220,7 +212,7 @@ export function BlitzScreen({
     setGuess(puzzle.answer);
     setFeedback({
       answer: puzzle.answer,
-      title: 'Rješenje asocijacije',
+      title: 'Rješenje',
       type: 'skipped',
     });
     setTimeout(() => {
@@ -242,7 +234,7 @@ export function BlitzScreen({
     if (normalize(guess) !== normalize(puzzle.answer)) {
       setGuess('');
       showTemporaryFeedback({
-        answer: randomItem(WRONG_BLITZ_MESSAGES),
+        answer: WRONG_BLITZ_MESSAGE,
         title: 'Nije tačno',
         type: 'wrong',
       });
@@ -349,8 +341,17 @@ export function BlitzScreen({
               <View style={styles.columnBadge}>
                 <Text style={styles.columnLetter}>⚡</Text>
               </View>
-              <View style={styles.columnPoints}>
-                <Text style={styles.columnPointsText}>{possiblePoints}</Text>
+              <View style={styles.blitzHeaderActions}>
+                <Pressable
+                  disabled={finished || loading || solved}
+                  onPress={skipPuzzle}
+                  style={[
+                    styles.blitzSkipButton,
+                    (finished || loading || solved) && styles.disabledButton,
+                  ]}
+                >
+                  <Text style={styles.blitzSkipButtonText}>Preskoči</Text>
+                </Pressable>
               </View>
             </View>
             <View style={styles.columnProgressTrack}>
@@ -385,9 +386,7 @@ export function BlitzScreen({
               );
             })}
             <View style={styles.columnMetaRow}>
-              <Text style={styles.possiblePoints}>
-                U igri: <Text style={styles.possiblePointsValue}>{possiblePoints}</Text>
-              </Text>
+              <Text style={styles.possiblePointsValue}>{possiblePoints}</Text>
               <Text style={styles.attemptText}>Pogodjeno: {successfulAttempts}</Text>
             </View>
             {feedback ? (
@@ -408,7 +407,9 @@ export function BlitzScreen({
                   {feedback.title}
                 </Text>
                 <Text style={styles.blitzFeedbackAnswer}>
-                  {feedback.answer.toUpperCase()}
+                  {feedback.type === 'correct' || feedback.type === 'skipped'
+                    ? feedback.answer.toUpperCase()
+                    : feedback.answer}
                 </Text>
               </View>
             ) : null}
@@ -424,30 +425,16 @@ export function BlitzScreen({
               style={[styles.columnInput, solved && styles.columnInputSolved]}
               value={guess}
             />
-            <View style={styles.blitzActions}>
-              <Pressable
-                disabled={finished || solved || !guess.trim()}
-                onPress={submitGuess}
-                style={[
-                  styles.okButton,
-                  styles.blitzActionButton,
-                  (finished || solved || !guess.trim()) && styles.disabledButton,
-                ]}
-              >
-                <Text style={styles.okButtonText}>{solved ? 'TACNO' : 'Provjeri'}</Text>
-              </Pressable>
-              <Pressable
-                disabled={finished || loading || solved}
-                onPress={skipPuzzle}
-                style={[
-                  styles.skipButton,
-                  styles.blitzActionButton,
-                  (finished || loading || solved) && styles.disabledButton,
-                ]}
-              >
-                <Text style={styles.skipButtonText}>Sljedeca</Text>
-              </Pressable>
-            </View>
+            <Pressable
+              disabled={finished || solved || !guess.trim()}
+              onPress={submitGuess}
+              style={[
+                styles.okButton,
+                (finished || solved || !guess.trim()) && styles.disabledButton,
+              ]}
+            >
+              <Text style={styles.okButtonText}>{solved ? 'TAČNO' : 'Provjeri'}</Text>
+            </Pressable>
           </View>
 
           {finished ? (

@@ -639,6 +639,27 @@ export function createStyles(theme) {
       fontSize: 11,
       fontWeight: '900',
     },
+    blitzHeaderActions: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: 8,
+    },
+    blitzSkipButton: {
+      alignItems: 'center',
+      backgroundColor: theme.accentSoft,
+      borderColor: theme.accent,
+      borderRadius: 8,
+      borderWidth: 1,
+      justifyContent: 'center',
+      minHeight: 30,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+    blitzSkipButtonText: {
+      color: theme.accent,
+      fontSize: 11,
+      fontWeight: '900',
+    },
     columnProgressTrack: {
       flexDirection: 'row',
       gap: 4,
@@ -734,27 +755,6 @@ export function createStyles(theme) {
       fontSize: 12,
       fontWeight: '900',
     },
-    blitzActions: {
-      flexDirection: 'row',
-      gap: 10,
-      marginTop: 7,
-    },
-    blitzActionButton: {
-      flex: 1,
-      marginTop: 0,
-    },
-    skipButton: {
-      alignItems: 'center',
-      backgroundColor: theme.accent,
-      borderRadius: 7,
-      height: 34,
-      justifyContent: 'center',
-    },
-    skipButtonText: {
-      color: theme.accentText,
-      fontSize: 12,
-      fontWeight: '900',
-    },
     blitzFeedbackBox: {
       backgroundColor: theme.successSoft,
       borderColor: theme.success,
@@ -765,12 +765,12 @@ export function createStyles(theme) {
       paddingVertical: 8,
     },
     blitzSkippedBox: {
-      backgroundColor: theme.dangerSoft,
-      borderColor: theme.danger,
-    },
-    blitzWrongBox: {
       backgroundColor: theme.accentSoft,
       borderColor: theme.accent,
+    },
+    blitzWrongBox: {
+      backgroundColor: theme.dangerSoft,
+      borderColor: theme.danger,
     },
     blitzFeedbackTitle: {
       color: theme.success,
@@ -779,10 +779,10 @@ export function createStyles(theme) {
       textAlign: 'center',
     },
     blitzSkippedTitle: {
-      color: theme.danger,
+      color: theme.accent,
     },
     blitzWrongTitle: {
-      color: theme.accent,
+      color: theme.danger,
     },
     blitzFeedbackAnswer: {
       color: theme.text,

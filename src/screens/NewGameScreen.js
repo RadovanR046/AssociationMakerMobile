@@ -20,7 +20,7 @@ function getDifficultyHint(difficulty) {
     return 'Dvije kolone dobijaju početnu pomoć, ali pokušaje treba čuvati pažljivije.';
   }
 
-  return 'Bez početne pomoći i bez prikazane kategorije. Imaš 4 minuta za rješavanje.';
+  return 'Bez početne pomoći, bez prikazane kategorije i sa nasumično izabranom kategorijom. Imaš 4 minuta za rješavanje.';
 }
 
 export function NewGameScreen({
@@ -52,12 +52,14 @@ export function NewGameScreen({
             label="Random kategorija"
             onPress={() => startLevel(getRandomCategory())}
           />
-          <GradientButton
-            color="#2563eb"
-            icon="🗂️"
-            label="Izaberi kategoriju"
-            onPress={chooseCategory}
-          />
+          {difficulty.id !== 3 ? (
+            <GradientButton
+              color="#2563eb"
+              icon="🗂️"
+              label="Izaberi kategoriju"
+              onPress={chooseCategory}
+            />
+          ) : null}
           <GradientButton
             color="#64748b"
             icon="⚙"

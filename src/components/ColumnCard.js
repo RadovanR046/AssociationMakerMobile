@@ -72,12 +72,10 @@ export function ColumnCard({
         );
       })}
       <View style={styles.columnMetaRow}>
-        <Text style={styles.possiblePoints}>
-          U igri: <Text style={styles.possiblePointsValue}>{possiblePoints}</Text>
-        </Text>
-        <Text style={styles.attemptText}>
-          {attemptsLeft === null ? 'Pokušaji: ∞' : `Pokušaji: ${attemptsLeft}`}
-        </Text>
+        <Text style={styles.possiblePointsValue}>{possiblePoints}</Text>
+        {attemptsLeft !== null ? (
+          <Text style={styles.attemptText}>Pokušaji: {attemptsLeft}</Text>
+        ) : null}
       </View>
       <TextInput
         autoCapitalize="none"

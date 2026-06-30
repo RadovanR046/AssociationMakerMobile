@@ -22,16 +22,8 @@ import { createPuzzle, normalize } from '../services/words';
 import { useAppTheme } from '../theme/ThemeContext';
 
 const LEVEL_3_TIME_LIMIT_SECONDS = 240;
-const WRONG_COLUMN_MESSAGES = [
-  'Nije to rješenje ove kolone. Probaj još jedno polje ili drugi odgovor.',
-  'Blizu ili daleko, tabla još ćuti. Otvori novo polje pa probaj ponovo.',
-  'Ova kolona traži drugi odgovor.',
-];
-const WRONG_FINAL_MESSAGES = [
-  'Nije konačno rješenje. Pogledaj odgovore i pokušaj ponovo.',
-  'Konačno rješenje još nije pogođeno.',
-  'Dobar pokušaj, ali ova asocijacija vodi ka drugoj riječi.',
-];
+const WRONG_COLUMN_MESSAGE = 'Probaj drugi odgovor.';
+const WRONG_FINAL_MESSAGE = 'Probaj drugi odgovor.';
 
 function emptyRevealedState() {
   return { 0: [], 1: [], 2: [], 3: [] };
@@ -43,10 +35,6 @@ function emptyAttemptsState() {
 
 function randomIndex(max) {
   return Math.floor(Math.random() * max);
-}
-
-function randomItem(items) {
-  return items[Math.floor(Math.random() * items.length)];
 }
 
 function formatTime(totalSeconds) {
@@ -227,7 +215,7 @@ export function GameScreen({
     nextTotalAttempts = totalAttempts,
     nextSuccessfulAttempts = successfulAttempts,
     status = 'lost',
-    title = 'Runda je prekinuta',
+    title = 'Runda završena',
   }) {
     setFinished(true);
     if (puzzle) {
@@ -275,9 +263,9 @@ export function GameScreen({
     timeoutHandledRef.current = true;
     revealFullPuzzle();
     await finishFailedRound({
-      message: 'Vrijeme je isteklo. Rješenja su otvorena bez dodatnih bodova.',
+      message: 'Vrijeme je isteklo. Rješenja su otvorena.',
       status: 'timeout',
-      title: 'Vrijeme je isteklo',
+      title: 'Vrijeme isteklo',
     });
   }
 
@@ -340,10 +328,10 @@ export function GameScreen({
   async function surrenderGame() {
     revealFullPuzzle();
     await finishFailedRound({
-      message: 'Partija je predata. Rješenja su otvorena bez dodatnih bodova.',
+      message: 'Partija je predata. Rješenja su otvorena.',
       nextScore: 0,
       status: 'surrendered',
-      title: 'Partija je predata',
+      title: 'Partija predata',
     });
   }
 
@@ -365,8 +353,8 @@ export function GameScreen({
 
     if (score < difficulty.buyAnswerCost) {
       showTemporaryFeedback({
-        answer: `Za kupovinu odgovora treba ${difficulty.buyAnswerCost} poena.`,
-        title: 'Nema dovoljno poena',
+        answer: `Treba ${difficulty.buyAnswerCost} poena.`,
+        title: 'Nedovoljno poena',
         type: 'wrong',
       });
       return;
@@ -391,13 +379,13 @@ export function GameScreen({
     });
     showTemporaryFeedback({
       answer: column.answer,
-      title: 'Odgovor kupljen',
+      title: 'Kupljeno',
       type: 'skipped',
     });
 
     if (cannotContinueRound(nextSolved, columnAttempts, nextScore, finalAttempts)) {
       await finishFailedRound({
-        message: 'Žao mi je, ne možete nastaviti sa ovom rundom.',
+        message: 'Nema više poteza.',
         nextScore,
       });
     }
@@ -428,7 +416,7 @@ export function GameScreen({
 
     if (attemptLimit !== null && columnAttempts[columnIndex] >= attemptLimit) {
       showTemporaryFeedback({
-        answer: 'Potrošio si sve pokušaje za ovu kolonu.',
+        answer: 'Nema pokušaja za ovu kolonu.',
         title: 'Nema pokušaja',
         type: 'wrong',
       });
@@ -446,7 +434,7 @@ export function GameScreen({
     if (normalize(guesses[columnIndex]) !== normalize(column.answer)) {
       if (cannotContinueRound(solved, nextColumnAttempts, score, finalAttempts)) {
         await finishFailedRound({
-          message: 'Žao mi je, ne možete nastaviti sa ovom rundom.',
+          message: 'Nema više poteza.',
           nextTotalAttempts,
         });
         return;
@@ -458,7 +446,7 @@ export function GameScreen({
         return next;
       });
       showTemporaryFeedback({
-        answer: randomItem(WRONG_COLUMN_MESSAGES),
+        answer: WRONG_COLUMN_MESSAGE,
         title: 'Nije tačno',
         type: 'wrong',
       });
@@ -497,7 +485,7 @@ export function GameScreen({
   async function submitFinal() {
     if (!hasEnoughSolvedForFinal) {
       showTemporaryFeedback({
-        answer: `Konačno rješenje možeš pogađati nakon ${difficulty.finalRequiredSolvedColumns} pogođene kolone.`,
+        answer: `Potrebno kolona: ${difficulty.finalRequiredSolvedColumns}.`,
         title: 'Zaključano',
         type: 'wrong',
       });
@@ -506,9 +494,9 @@ export function GameScreen({
 
     if (difficulty.finalAttempts !== null && finalAttempts >= difficulty.finalAttempts) {
       await finishFailedRound({
-        message: 'Žao mi je, ne možete nastaviti sa ovom rundom.',
+        message: 'Nema više pokušaja.',
         status: 'lost',
-        title: 'Nema više poteza',
+        title: 'Runda završena',
       });
       return;
     }
@@ -522,18 +510,18 @@ export function GameScreen({
 
       if (difficulty.finalAttempts !== null && nextFinalAttempts >= difficulty.finalAttempts) {
         await finishFailedRound({
-          message: 'Žao mi je, ne možete nastaviti sa ovom rundom.',
+          message: 'Nema više pokušaja.',
           nextTotalAttempts,
           status: 'lost',
-          title: 'Nema više pokušaja',
+          title: 'Runda završena',
         });
         return;
       }
 
       setFinalGuess('');
       showTemporaryFeedback({
-        answer: randomItem(WRONG_FINAL_MESSAGES),
-        title: 'Nije konačno rješenje',
+        answer: WRONG_FINAL_MESSAGE,
+        title: 'Nije tačno',
         type: 'wrong',
       });
       return;
@@ -566,7 +554,7 @@ export function GameScreen({
     setGuesses(puzzle.columns.map((column) => column.answer));
     setFinished(true);
     setRoundResult({
-      detail: 'Konačno rješenje je pogođeno, preostale kolone su otvorene i bodovane.',
+      detail: 'Konačno rješenje je pogođeno.',
       status: 'won',
       title: 'Pobjeda',
     });
@@ -722,10 +710,10 @@ export function GameScreen({
               value={finalGuess}
             />
             <View style={styles.finalMetaRow}>
-              <Text style={styles.finalMetaText}>Bonus: {difficulty.finalBonus}</Text>
-              <Text style={styles.finalMetaText}>
-                Pokušaji: {finalAttemptsLeft === null ? '∞' : finalAttemptsLeft}
-              </Text>
+              <Text style={styles.finalMetaText}>{difficulty.finalBonus}</Text>
+              {finalAttemptsLeft !== null ? (
+                <Text style={styles.finalMetaText}>Pokušaji: {finalAttemptsLeft}</Text>
+              ) : null}
             </View>
             <Pressable
               disabled={!canFinal || !finalGuess.trim()}
